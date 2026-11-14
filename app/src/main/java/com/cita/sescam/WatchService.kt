@@ -156,11 +156,9 @@ class WatchService : Service() {
     private fun registrarHistorial(linea: String) {
         val prefs = getSharedPreferences("cfg", MODE_PRIVATE)
         val actual = prefs.getString("historial", "") ?: ""
-        val lineas = actual.split("
-").filter { it.isNotBlank() }.toMutableList()
+        val lineas = actual.split("\n").filter { it.isNotBlank() }.toMutableList()
         lineas.add(0, linea)
-        val recortado = lineas.take(8).joinToString("
-")
+        val recortado = lineas.take(8).joinToString("\n")
         prefs.edit().putString("historial", recortado).apply()
     }
 
@@ -176,10 +174,7 @@ class WatchService : Service() {
         val resumen = "${c.optString("fecha")} ${c.optString("hora")} - ${c.optString("nomModoVisita")}"
         val centro = c.optJSONObject("centroSalud")?.optString("nombre") ?: ""
         val medico = c.optString("nomProfesionalRealizador")
-        val cuerpo = "$resumen
-$centro
-$medico
-Nº solicitud: ${c.optString("numSolic")}"
+        val cuerpo = "$resumen\n$centro\n$medico\nNº solicitud: ${c.optString("numSolic")}"
         val n = Notification.Builder(this, CANAL_AVISO)
             .setSmallIcon(R.drawable.ic_notif_cita)
             .setContentTitle("¡CITA RESERVADA!")
@@ -193,10 +188,8 @@ Nº solicitud: ${c.optString("numSolic")}"
     }
 
     private fun avisar(h: List<Hueco>) {
-        val cuerpo = h.take(8).joinToString("
-") { it.texto } +
-            if (h.size > 8) "
-… y ${h.size - 8} más" else ""
+        val cuerpo = h.take(8).joinToString("\n") { it.texto } +
+            if (h.size > 8) "\n… y ${h.size - 8} más" else ""
         val n = Notification.Builder(this, CANAL_AVISO)
             .setSmallIcon(R.drawable.ic_notif_cita)
             .setContentTitle("¡Cita SESCAM disponible!")
