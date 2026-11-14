@@ -8,6 +8,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import javax.net.ssl.HttpsURLConnection
 
 class Hueco(
     val fecha: LocalDate,
@@ -45,6 +46,7 @@ class SescamClient(private val cip: String) {
 
     private fun peticion(url: String, metodo: String, cuerpo: String? = null, auth: Boolean = false): Pair<Int, String> {
         val c = URL(url).openConnection() as HttpURLConnection
+        if (c is HttpsURLConnection) c.sslSocketFactory = Tls.fabrica
         try {
             c.requestMethod = metodo
             c.connectTimeout = 20000

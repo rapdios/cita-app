@@ -9,6 +9,7 @@
 
     <application
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:label="Cita SESCAM"
         android:theme="@android:style/Theme.DeviceDefault.Light">
 
