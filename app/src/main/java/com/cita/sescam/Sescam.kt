@@ -46,7 +46,10 @@ class SescamClient(private val cip: String) {
 
     private fun peticion(url: String, metodo: String, cuerpo: String? = null, auth: Boolean = false): Pair<Int, String> {
         val c = URL(url).openConnection() as HttpURLConnection
-        if (c is HttpsURLConnection) c.sslSocketFactory = Tls.fabrica
+        if (c is HttpsURLConnection) {
+            c.sslSocketFactory = Tls.fabrica
+            c.hostnameVerifier = Tls.verificadorHost
+        }
         try {
             c.requestMethod = metodo
             c.connectTimeout = 20000
