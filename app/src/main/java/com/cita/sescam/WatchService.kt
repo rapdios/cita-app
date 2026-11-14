@@ -48,7 +48,7 @@ class WatchService : Service() {
     private fun arrancar() {
         val p = getSharedPreferences("cfg", MODE_PRIVATE)
         val cip = p.getString("cip", "") ?: ""
-        val dias = p.getInt("dias", 4)
+        val dias = p.getInt("dias", 20)
         val intervalo = maxOf(p.getInt("intervalo", 30), 30)
         val modo = p.getString("modo", "ambos") ?: "ambos"
         val mejorar = p.getBoolean("mejorar", false)
