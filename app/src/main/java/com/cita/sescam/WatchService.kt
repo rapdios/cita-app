@@ -51,7 +51,7 @@ class WatchService : Service() {
         val dias = p.getInt("dias", 4)
         val intervalo = maxOf(p.getInt("intervalo", 30), 30)
         val modo = p.getString("modo", "ambos") ?: "ambos"
-        val mejorar = p.getBoolean("mejorar", true)
+        val mejorar = p.getBoolean("mejorar", false)
         val reservar = p.getBoolean("reservar", false)
 
         val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -97,6 +97,7 @@ class WatchService : Service() {
                             .putBoolean("activo", false)
                             .putString("estado", "CITA RESERVADA: $resumen")
                             .apply()
+                        registrarHistorial("CITA RESERVADA: $resumen")
                         activo = false
                         stopForeground(STOP_FOREGROUND_REMOVE)
                         stopSelf()
@@ -104,10 +105,11 @@ class WatchService : Service() {
                     }
                     if (nuevos.isNotEmpty()) {
                         avisar(nuevos)
-                        estado("¡${nuevos.size} hueco(s) libre(s)! ${nuevos.first().texto}")
+                        estado("¡${nuevos.size} hueco(s) disponible(s)! ${nuevos.first().texto}")
                     } else {
                         val cercano = lista.firstOrNull()?.texto ?: "ninguno"
-                        estado("Sin huecos nuevos · más cercano: $cercano")
+                        val detalleRango = if (!mejorar) " (rango $dias d)" else ""
+                        estado("Sin novedades$detalleRango · más cercano: $cercano")
                     }
                     fallos = 0
                 } catch (e: Exception) {
@@ -144,17 +146,29 @@ class WatchService : Service() {
 
     private fun notifEstado(texto: String): Notification =
         Notification.Builder(this, CANAL_ESTADO)
-            .setSmallIcon(android.R.drawable.ic_menu_search)
+            .setSmallIcon(R.drawable.ic_notif_cita)
             .setContentTitle("Buscando cita SESCAM")
             .setContentText(texto)
             .setContentIntent(abrirApp())
             .setOngoing(true)
             .build()
 
+    private fun registrarHistorial(linea: String) {
+        val prefs = getSharedPreferences("cfg", MODE_PRIVATE)
+        val actual = prefs.getString("historial", "") ?: ""
+        val lineas = actual.split("
+").filter { it.isNotBlank() }.toMutableList()
+        lineas.add(0, linea)
+        val recortado = lineas.take(8).joinToString("
+")
+        prefs.edit().putString("historial", recortado).apply()
+    }
+
     private fun estado(msg: String) {
         val hora = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         val txt = "$hora · $msg"
         getSharedPreferences("cfg", MODE_PRIVATE).edit().putString("estado", txt).apply()
+        registrarHistorial(txt)
         getSystemService(NotificationManager::class.java).notify(1, notifEstado(txt))
     }
 
@@ -162,9 +176,12 @@ class WatchService : Service() {
         val resumen = "${c.optString("fecha")} ${c.optString("hora")} - ${c.optString("nomModoVisita")}"
         val centro = c.optJSONObject("centroSalud")?.optString("nombre") ?: ""
         val medico = c.optString("nomProfesionalRealizador")
-        val cuerpo = "$resumen\n$centro\n$medico\nNº solicitud: ${c.optString("numSolic")}"
+        val cuerpo = "$resumen
+$centro
+$medico
+Nº solicitud: ${c.optString("numSolic")}"
         val n = Notification.Builder(this, CANAL_AVISO)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notif_cita)
             .setContentTitle("¡CITA RESERVADA!")
             .setContentText(resumen)
             .setStyle(Notification.BigTextStyle().bigText(cuerpo))
@@ -176,10 +193,12 @@ class WatchService : Service() {
     }
 
     private fun avisar(h: List<Hueco>) {
-        val cuerpo = h.take(8).joinToString("\n") { it.texto } +
-            if (h.size > 8) "\n… y ${h.size - 8} más" else ""
+        val cuerpo = h.take(8).joinToString("
+") { it.texto } +
+            if (h.size > 8) "
+… y ${h.size - 8} más" else ""
         val n = Notification.Builder(this, CANAL_AVISO)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notif_cita)
             .setContentTitle("¡Cita SESCAM disponible!")
             .setContentText(h.first().texto)
             .setStyle(Notification.BigTextStyle().bigText(cuerpo))
